@@ -141,7 +141,7 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-item" data-page="categories"><i class="ti ti-tag"></i> Categorias</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Configurações</button>
     <button class="nav-item logout-btn" id="btn-logout"><i class="ti ti-logout"></i> Sair</button>
-    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v37</div>
+    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v38</div>
   </div>
 
   <div class="main">
@@ -320,6 +320,7 @@ const DEFAULT_CATS={
   'Moradia':['Água e Esgoto','Condomínio','Empregada Doméstica','Energia Elétrica','Gás','Internet','IPTU','Jardineiro','Manutenção (pequenos reparos)','Piscineiro','Seguro Residencial','Telefone','TV a Cabo/Streaming'],
   'Outras':['Outras Despesas','Presentes','Taxas Bancárias e Anuidades'],
   'Pagamento Fatura Visa XP':[],
+  'Pendente de Classificação':[],
   'Receitas':['Salário','Freelance','Rendimentos','Outros Rendimentos'],
   'Saúde':['Consultas Médicas','Farmácia','Plano de Saúde'],
   'Transporte':['Combustível','Estacionamento','Manutenção Veículo','Seguro Veículo','Transporte Público','Uber/Táxi'],
@@ -353,7 +354,7 @@ const CAT_RULES=[
 function guessCategory(desc){
   const d=desc.toLowerCase();
   for(const r of CAT_RULES)if(r.kw.some(k=>d.includes(k)))return{cat:r.cat,sub:r.sub||''};
-  return{cat:'Outras',sub:''};
+  return{cat:'Pendente de Classificação',sub:''};
 }
 
 const MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -529,7 +530,7 @@ function renderDashboard(){
   document.getElementById('recent-tbody').innerHTML=recent.length?recent.map(t=>`<tr>
     <td>${fmtDate(t.date)}</td>
     <td>${t.desc}${t.recurTotal?`<span class="recurring-badge">${t.recurIndex}/${t.recurTotal}</span>`:t.recurring?'<span class="recurring-badge"><i class="ti ti-refresh" style="font-size:9px"></i></span>':''}${t.notes?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${t.notes}</div>`:''}</td>
-    <td><span class="badge badge-cat">${t.category}</span>${t.subcategory?`<span class="badge badge-subcat">${t.subcategory}</span>`:''}</td>
+    <td><span class="badge ${t.category==='Pendente de Classificação'?'badge-pending':'badge-cat'}">${t.category}</span>${t.subcategory?`<span class="badge badge-subcat">${t.subcategory}</span>`:''}</td>
     <td><span class="badge ${t.type==='income'?'badge-income':'badge-expense'}">${t.type==='income'?'Receita':'Despesa'}</span></td>
     <td style="color:var(--text3);font-size:12px">${shortEmail(t.createdBy)||'—'}</td>
     <td style="color:${t.type==='income'?'var(--green)':'var(--red)'};font-weight:500">${t.type==='expense'?'-':''}${cur(t.value)}</td>
