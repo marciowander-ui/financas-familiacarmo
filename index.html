@@ -613,9 +613,10 @@ document.getElementById('btn-add-cat').addEventListener('click',()=>{
   categories.push(v);document.getElementById('new-cat-name').value='';renderSettings();populateCatSelect();
 });
 function populateCatSelect(){
-  document.getElementById('f-cat').innerHTML=categories.map(c=>`<option value="${c}">${c}</option>`).join('');
+  const sorted=[...categories].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  document.getElementById('f-cat').innerHTML=sorted.map(c=>`<option value="${c}">${c}</option>`).join('');
   const fc=document.getElementById('filter-cat');
-  if(fc){const v=fc.value;fc.innerHTML='<option value="">Todas categorias</option>'+categories.map(c=>`<option value="${c}">${c}</option>`).join('');fc.value=v;}
+  if(fc){const v=fc.value;fc.innerHTML='<option value="">Todas categorias</option>'+sorted.map(c=>`<option value="${c}">${c}</option>`).join('');fc.value=v;}
 }
 
 // Modal
