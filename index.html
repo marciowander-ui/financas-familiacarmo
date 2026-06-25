@@ -141,7 +141,7 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-item" data-page="categories"><i class="ti ti-tag"></i> Categorias</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Configurações</button>
     <button class="nav-item logout-btn" id="btn-logout"><i class="ti ti-logout"></i> Sair</button>
-    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v51</div>
+    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v53</div>
   </div>
 
   <div class="main">
@@ -177,6 +177,7 @@ tr:hover td{background:var(--surface2)}
         <button id="btn-new-tx" class="btn-primary"><i class="ti ti-plus" style="margin-right:4px"></i> Novo lançamento</button>
       </div>
       <div class="filter-row">
+        <input type="text" id="filter-search" placeholder="🔍 Buscar descrição ou observação..." style="flex:2;min-width:200px">
         <select id="filter-month"><option value="">Todos os meses</option></select>
         <select id="filter-cat"><option value="">Todas categorias</option></select>
         <select id="filter-type"><option value="">Todos</option><option value="income">Receita</option><option value="expense">Despesa</option></select>
@@ -486,6 +487,7 @@ function showPage(p){
       const el=document.getElementById(id);
       el.onchange=renderTransactions;
     });
+    document.getElementById('filter-search').oninput=renderTransactions;
   }
   else if(p==='cashflow')renderCashflow();
   else if(p==='categories')renderCategoriesPage();
@@ -564,7 +566,9 @@ function renderBarChart(){
 // Transactions
 function renderTransactions(){
   const mf=document.getElementById('filter-month').value,cf=document.getElementById('filter-cat').value,tf=document.getElementById('filter-type').value,wf=document.getElementById('filter-who').value;
+  const sf=(document.getElementById('filter-search').value||'').toLowerCase().trim();
   let txs=[...transactions];
+  if(sf)txs=txs.filter(t=>(t.desc||'').toLowerCase().includes(sf)||(t.notes||'').toLowerCase().includes(sf));
   if(mf){const[y,m]=mf.split('-').map(Number);txs=txs.filter(t=>{const d=new Date(t.date+'T12:00:00');return d.getMonth()===m&&d.getFullYear()===y;});}
   if(cf){
     if(cf.includes(':')){
