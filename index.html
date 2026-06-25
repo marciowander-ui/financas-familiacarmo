@@ -141,7 +141,7 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-item" data-page="categories"><i class="ti ti-tag"></i> Categorias</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Configurações</button>
     <button class="nav-item logout-btn" id="btn-logout"><i class="ti ti-logout"></i> Sair</button>
-    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v45</div>
+    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v47</div>
   </div>
 
   <div class="main">
@@ -479,7 +479,14 @@ function showPage(p){
   document.getElementById('page-'+p).classList.add('active');
   document.querySelector('.nav-item[data-page="'+p+'"]').classList.add('active');
   if(p==='dashboard')renderDashboard();
-  else if(p==='transactions'){populateFilterMonths();renderTransactions();}
+  else if(p==='transactions'){
+    populateFilterMonths();
+    renderTransactions();
+    ['filter-month','filter-cat','filter-type','filter-who'].forEach(id=>{
+      const el=document.getElementById(id);
+      el.onchange=renderTransactions;
+    });
+  }
   else if(p==='cashflow')renderCashflow();
   else if(p==='categories')renderCategoriesPage();
   else if(p==='settings')renderSettings();
@@ -559,7 +566,14 @@ function renderTransactions(){
   const mf=document.getElementById('filter-month').value,cf=document.getElementById('filter-cat').value,tf=document.getElementById('filter-type').value,wf=document.getElementById('filter-who').value;
   let txs=[...transactions];
   if(mf){const[y,m]=mf.split('-').map(Number);txs=txs.filter(t=>{const d=new Date(t.date+'T12:00:00');return d.getMonth()===m&&d.getFullYear()===y;});}
-  if(cf){if(cf.includes(':')){const[c,s]=cf.split(':');txs=txs.filter(t=>t.category===c&&t.subcategory===s);}else txs=txs.filter(t=>t.category===cf);}
+  if(cf){
+    if(cf.includes(':')){
+      const[c,s]=cf.split(':');
+      txs=txs.filter(t=>t.category===c&&t.subcategory===s);
+    } else {
+      txs=txs.filter(t=>t.category===cf);
+    }
+  }
   if(tf)txs=txs.filter(t=>t.type===tf);
   if(wf)txs=txs.filter(t=>t.createdBy===wf);
   const tbody=document.getElementById('trans-tbody');
