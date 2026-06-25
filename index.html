@@ -374,15 +374,11 @@ function setSyncState(s){const dot=document.getElementById('sync-dot'),lbl=docum
 async function loadCats(){
   try{
     const snap=await getDoc(doc(db,'settings','categories'));
-    if(snap.exists()&&snap.data().data){
-      // merge: default + saved (saved wins, preserves user additions)
-      const saved=snap.data().data;
-      cats={...DEFAULT_CATS};
-      for(const[k,v]of Object.entries(saved)){
-        if(!cats[k])cats[k]=v;
-        else{const merged=new Set([...cats[k],...v]);cats[k]=[...merged];}
-      }
+    if(snap.exists()&&snap.data().data&&Object.keys(snap.data().data).length>0){
+      // Firestore é a fonte da verdade — nunca sobrescreve com DEFAULT_CATS
+      cats=snap.data().data;
     } else {
+      // Primeira vez: inicializa com o padrão e salva no Firestore
       cats={...DEFAULT_CATS};
       await saveCats();
     }
