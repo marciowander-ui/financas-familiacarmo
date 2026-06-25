@@ -254,6 +254,7 @@ tr:hover td{background:var(--surface2)}
         </div>
       </div>
     </div>
+    <div class="form-row"><label>Observação <span style="color:var(--text3)">(opcional)</span></label><textarea id="f-notes" placeholder="Detalhes adicionais..." style="resize:vertical;min-height:64px;font-family:inherit"></textarea></div>
     <div style="background:var(--surface2);border-radius:var(--radius);padding:12px;margin-bottom:1rem">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
         <input type="checkbox" id="f-recur" style="width:15px;height:15px;flex-shrink:0">
@@ -478,7 +479,7 @@ function renderDashboard(){
   const recent=[...transactions].slice(0,8);
   document.getElementById('recent-tbody').innerHTML=recent.length?recent.map(t=>`<tr>
     <td>${fmtDate(t.date)}</td>
-    <td>${t.desc}${t.recurTotal?`<span class="recurring-badge">${t.recurIndex}/${t.recurTotal}</span>`:t.recurring?'<span class="recurring-badge"><i class="ti ti-refresh" style="font-size:9px"></i></span>':''}</td>
+    <td>${t.desc}${t.recurTotal?`<span class="recurring-badge">${t.recurIndex}/${t.recurTotal}</span>`:t.recurring?'<span class="recurring-badge"><i class="ti ti-refresh" style="font-size:9px"></i></span>':''}${t.notes?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${t.notes}</div>`:''}</td>
     <td><span class="badge badge-cat">${t.category}</span></td>
     <td><span class="badge ${t.type==='income'?'badge-income':'badge-expense'}">${t.type==='income'?'Receita':'Despesa'}</span></td>
     <td style="color:var(--text3);font-size:12px">${shortEmail(t.createdBy)||'—'}</td>
@@ -662,7 +663,7 @@ function openModal(tx=null){
   document.getElementById('f-date-day-wrap').style.display='none';
   populateCatSelect();
   if(tx)document.getElementById('f-cat').value=tx.category;
-  document.getElementById('f-recur').checked=tx?tx.recurring:false;
+  document.getElementById('f-notes').value=tx?tx.notes||'':
   document.getElementById('recur-options').style.display=tx&&tx.recurring?'block':'none';
   document.getElementById('f-recur-freq').value=tx?.recurFreq||'monthly';
   document.getElementById('f-recur-times').value='0';
@@ -715,18 +716,19 @@ async function saveTransaction(){
   const freq=document.getElementById('f-recur-freq').value;
   const tv=document.getElementById('f-recur-times').value;
   const times=tv==='custom'?parseInt(document.getElementById('f-recur-custom').value)||0:parseInt(tv);
+  const notes=document.getElementById('f-notes').value.trim();
   if(!desc||!val||!date){alert('Preencha todos os campos');return;}
   setSyncState('syncing');
   try{
     if(editingId){
-      await updateDoc(doc(db,'transactions',editingId),{desc,value:val,date,category:cat,type:txType,recurring:recur,recurFreq:freq});
+      await updateDoc(doc(db,'transactions',editingId),{desc,value:val,date,category:cat,type:txType,recurring:recur,recurFreq:freq,notes});
     } else if(recur&&times>0){
       const groupId='grp_'+Date.now().toString(36);
       for(let i=0;i<times;i++){
-        await addDoc(collection(db,'transactions'),{desc,value:val,date:addMonths(date,i,freq),category:cat,type:txType,recurring:true,recurFreq:freq,recurGroup:groupId,recurIndex:i+1,recurTotal:times,createdBy:currentUser.email,createdAt:new Date().toISOString()});
+        await addDoc(collection(db,'transactions'),{desc,value:val,date:addMonths(date,i,freq),category:cat,type:txType,recurring:true,recurFreq:freq,recurGroup:groupId,recurIndex:i+1,recurTotal:times,notes,createdBy:currentUser.email,createdAt:new Date().toISOString()});
       }
     } else {
-      await addDoc(collection(db,'transactions'),{desc,value:val,date,category:cat,type:txType,recurring:recur,recurFreq:recur?freq:null,createdBy:currentUser.email,createdAt:new Date().toISOString()});
+      await addDoc(collection(db,'transactions'),{desc,value:val,date,category:cat,type:txType,recurring:recur,recurFreq:recur?freq:null,notes,createdBy:currentUser.email,createdAt:new Date().toISOString()});
     }
     closeModal();
     // aprende a associação desc -> categoria
