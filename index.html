@@ -141,7 +141,7 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-item" data-page="categories"><i class="ti ti-tag"></i> Categorias</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Configurações</button>
     <button class="nav-item logout-btn" id="btn-logout"><i class="ti ti-logout"></i> Sair</button>
-    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v53</div>
+    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v54</div>
   </div>
 
   <div class="main">
@@ -378,14 +378,17 @@ async function loadCats(){
   try{
     const snap=await getDoc(doc(db,'settings','categories'));
     if(snap.exists()&&snap.data().data&&Object.keys(snap.data().data).length>0){
-      // Firestore é a fonte da verdade — nunca sobrescreve com DEFAULT_CATS
+      // Firestore é SEMPRE a fonte da verdade — jamais sobrescreve
       cats=snap.data().data;
     } else {
-      // Primeira vez: inicializa com o padrão e salva no Firestore
-      cats={...DEFAULT_CATS};
+      // Apenas na primeira vez que o app é aberto (banco vazio)
+      cats=JSON.parse(JSON.stringify(DEFAULT_CATS));
       await saveCats();
     }
-  }catch(e){cats={...DEFAULT_CATS};}
+  }catch(e){
+    // Erro de rede: usa o que já está em memória ou o padrão
+    if(!cats||Object.keys(cats).length===0)cats=JSON.parse(JSON.stringify(DEFAULT_CATS));
+  }
 }
 async function saveCats(){
   try{await setDoc(doc(db,'settings','categories'),{data:cats});}catch(e){}
