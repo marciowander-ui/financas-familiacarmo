@@ -18,6 +18,15 @@
   --amber:#eda100;--amber-bg:rgba(237,161,0,0.15);
   --radius:8px;
 }
+[data-theme="light"]{
+  --bg:#f5f5f3;--surface:#ffffff;--surface2:#f0efeb;--surface3:#e8e7e2;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+  --text:#1a1a19;--text2:#52514e;--text3:#888780;
+  --accent:#2a78d6;--accent-bg:rgba(42,120,214,0.1);
+  --green:#0e9060;--green-bg:rgba(14,144,96,0.1);
+  --red:#cc3333;--red-bg:rgba(204,51,51,0.1);
+  --amber:#c47d00;--amber-bg:rgba(196,125,0,0.1);
+}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh}
 #loading-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:12px;color:var(--text3)}
 #loading-screen .spin{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
@@ -99,7 +108,9 @@ tr:hover td{background:var(--surface2)}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
 .sync-dot.syncing{background:var(--amber);animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.cat-group{margin-bottom:1rem}
+.theme-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .15s;width:100%}
+.theme-btn:hover{background:var(--surface3);color:var(--text)}
+.theme-btn.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
 .cat-group-header{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border2);margin-bottom:4px}
 .cat-group-name{font-size:13px;font-weight:500;color:var(--text)}
 .cat-subitem{display:flex;align-items:center;justify-content:space-between;padding:6px 0 6px 16px;border-bottom:0.5px solid var(--border);font-size:12px;color:var(--text2)}
@@ -141,7 +152,7 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-item" data-page="categories"><i class="ti ti-tag"></i> Categorias</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Configurações</button>
     <button class="nav-item logout-btn" id="btn-logout"><i class="ti ti-logout"></i> Sair</button>
-    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v54</div>
+    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v56</div>
   </div>
 
   <div class="main">
@@ -219,7 +230,22 @@ tr:hover td{background:var(--surface2)}
           <p id="pwd-msg" style="font-size:12px;margin-top:8px;min-height:18px"></p>
         </div>
         <div class="chart-card">
-          <h3 style="margin-bottom:1rem">Importar fatura XP Visa</h3>
+          <h3 style="margin-bottom:1rem">Tema</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <button class="theme-btn" data-theme="dark" title="Escuro">
+              <i class="ti ti-moon" style="font-size:20px;display:block;margin-bottom:6px"></i>
+              <span style="font-size:12px">Escuro</span>
+            </button>
+            <button class="theme-btn" data-theme="light" title="Claro">
+              <i class="ti ti-sun" style="font-size:20px;display:block;margin-bottom:6px"></i>
+              <span style="font-size:12px">Claro</span>
+            </button>
+            <button class="theme-btn" data-theme="system" title="Sistema">
+              <i class="ti ti-device-laptop" style="font-size:20px;display:block;margin-bottom:6px"></i>
+              <span style="font-size:12px">Sistema</span>
+            </button>
+          </div>
+        </div>
           <p style="font-size:12px;color:var(--text2);margin-bottom:1rem">Importa o CSV da fatura. Duplicatas são ignoradas automaticamente.</p>
           <button id="btn-import-xp-trigger" class="btn-primary" style="width:100%"><i class="ti ti-credit-card" style="margin-right:4px"></i> Selecionar arquivo CSV</button>
           <input type="file" id="import-xp-file" accept=".csv" style="display:none">
@@ -394,7 +420,30 @@ async function saveCats(){
   try{await setDoc(doc(db,'settings','categories'),{data:cats});}catch(e){}
 }
 
-// Category memory
+// Theme
+function applyTheme(pref){
+  const root=document.documentElement;
+  if(pref==='light'){root.setAttribute('data-theme','light');}
+  else if(pref==='dark'){root.removeAttribute('data-theme');}
+  else{
+    // system
+    const prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if(prefersDark)root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme','light');
+  }
+  localStorage.setItem('theme-pref',pref);
+  document.querySelectorAll('.theme-btn').forEach(b=>{
+    b.classList.toggle('active',b.dataset.theme===pref);
+  });
+}
+document.querySelectorAll('.theme-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>applyTheme(btn.dataset.theme));
+});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+  if(localStorage.getItem('theme-pref')==='system')applyTheme('system');
+});
+// apply saved preference on load
+applyTheme(localStorage.getItem('theme-pref')||'dark');
 function descKey(d){return d.trim().toLowerCase().replace(/\s+/g,' ');}
 async function loadCategoryMemory(){try{const s=await getDoc(doc(db,'settings','categoryMemory'));if(s.exists())categoryMemory=s.data()||{};}catch(e){}}
 async function saveCategoryMemory(desc,cat,sub){
@@ -639,6 +688,8 @@ function renderCategoriesPage(){
 
 // Settings
 function renderSettings(){
+  const pref=localStorage.getItem('theme-pref')||'dark';
+  document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===pref));
   const list=document.getElementById('cat-list');
   list.innerHTML=sortedCatNames().map(c=>`
     <div class="cat-group">
