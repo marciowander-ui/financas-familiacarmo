@@ -238,7 +238,9 @@ tr:hover td{background:var(--surface2)}
     <div class="form-grid">
       <div class="form-row"><label>Descrição</label><input type="text" id="f-desc" placeholder="Ex: Supermercado"></div>
       <div class="form-row"><label>Valor (R$)</label><input type="number" id="f-val" placeholder="0,00" min="0" step="0.01"></div>
-      <div class="form-row"><label>Categoria</label><select id="f-cat"></select></div>
+      <div class="form-row"><label>Categoria</label><select id="f-cat"></select>
+        <div id="cat-hint" style="display:none;font-size:11px;color:var(--accent);margin-top:4px;display:flex;align-items:center;gap:4px"><i class="ti ti-sparkles" style="font-size:12px"></i><span>Categoria sugerida com base no histórico</span></div>
+      </div>
       <div class="form-row"><label>Data</label>
         <select id="f-date-mode" style="margin-bottom:6px">
           <option value="specific">Data específica</option>
@@ -282,7 +284,7 @@ tr:hover td{background:var(--surface2)}
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,sendPasswordResetEmail,updatePassword,EmailAuthProvider,reauthenticateWithCredential}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import{getFirestore,collection,addDoc,getDocs,deleteDoc,doc,updateDoc,onSnapshot,query,orderBy}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import{getFirestore,collection,addDoc,getDocs,deleteDoc,doc,updateDoc,onSnapshot,query,orderBy,setDoc,getDoc}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig={
   apiKey:"AIzaSyDpC8rfAw1Emm0CAnJhRUPbIfovXEbY0Us",
@@ -314,6 +316,7 @@ function guessCategory(desc){const d=desc.toLowerCase();for(const r of CAT_RULES
 let currentUser=null;
 let transactions=[];
 let categories=[...CATS_DEFAULT];
+let categoryMemory={};  // desc_key -> category
 let currentMonth=new Date().getMonth();
 let currentYear=new Date().getFullYear();
 let editingId=null,txType='expense';
@@ -333,14 +336,50 @@ function setSyncState(s){
   else{dot.className='sync-dot';lbl.textContent='Sincronizado';}
 }
 
+// Category memory
+function descKey(desc){return desc.trim().toLowerCase().replace(/\s+/g,' ');}
+
+async function loadCategoryMemory(){
+  try{
+    const snap=await getDoc(doc(db,'settings','categoryMemory'));
+    if(snap.exists())categoryMemory=snap.data()||{};
+  }catch(e){}
+}
+
+async function saveCategoryMemory(desc,cat){
+  const key=descKey(desc);
+  if(!key||categoryMemory[key]===cat)return;
+  categoryMemory[key]=cat;
+  try{await setDoc(doc(db,'settings','categoryMemory'),categoryMemory);}catch(e){}
+}
+
+function suggestCategory(desc){
+  if(!desc||desc.length<2)return null;
+  const key=descKey(desc);
+  // exact match
+  if(categoryMemory[key])return categoryMemory[key];
+  // partial match — find longest stored key that is contained in desc or vice versa
+  const words=key.split(' ');
+  let best=null,bestLen=0;
+  for(const [k,cat] of Object.entries(categoryMemory)){
+    const kwords=k.split(' ');
+    const matches=kwords.every(w=>key.includes(w))||words.every(w=>k.includes(w));
+    if(matches&&k.length>bestLen){best=cat;bestLen=k.length;}
+  }
+  if(best)return best;
+  // fallback to rule-based
+  return guessCategory(desc);
+}
+
 // Auth
-onAuthStateChanged(auth,user=>{
+onAuthStateChanged(auth,async user=>{
   document.getElementById('loading-screen').style.display='none';
   if(user){
     currentUser=user;
     document.getElementById('login-screen').style.display='none';
     document.getElementById('app').style.display='block';
     document.getElementById('user-email-label').textContent=shortEmail(user.email);
+    await loadCategoryMemory();
     startListening();
     updateMonthLabel();
     populateCatSelect();
@@ -580,6 +619,20 @@ function populateCatSelect(){
 
 // Modal
 document.getElementById('btn-new-tx').addEventListener('click',()=>openModal());
+document.getElementById('f-desc').addEventListener('input',function(){
+  const suggestion=suggestCategory(this.value);
+  if(suggestion){
+    document.getElementById('f-cat').value=suggestion;
+    const hint=document.getElementById('cat-hint');
+    hint.textContent='Categoria sugerida com base no histórico';
+    hint.style.display='block';
+  } else {
+    document.getElementById('cat-hint').style.display='none';
+  }
+});
+document.getElementById('f-cat').addEventListener('change',()=>{
+  document.getElementById('cat-hint').style.display='none';
+});
 document.getElementById('btn-modal-cancel').addEventListener('click',closeModal);
 document.getElementById('btn-modal-save').addEventListener('click',saveTransaction);
 document.getElementById('type-expense-btn').addEventListener('click',()=>setType('expense'));
@@ -676,6 +729,8 @@ async function saveTransaction(){
       await addDoc(collection(db,'transactions'),{desc,value:val,date,category:cat,type:txType,recurring:recur,recurFreq:recur?freq:null,createdBy:currentUser.email,createdAt:new Date().toISOString()});
     }
     closeModal();
+    // aprende a associação desc -> categoria
+    await saveCategoryMemory(desc,cat);
   }catch(e){alert('Erro ao salvar: '+e.message);setSyncState('synced');}
 }
 
