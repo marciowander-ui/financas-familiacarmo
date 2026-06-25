@@ -116,6 +116,8 @@ tr:hover td{background:var(--surface2)}
     <div class="form-row"><input type="password" id="login-pwd" placeholder="Senha"></div>
     <button id="btn-login" class="btn-primary" style="width:100%;margin-top:0.25rem">Entrar</button>
     <p id="login-err" style="color:var(--red);font-size:12px;margin-top:0.75rem;min-height:18px"></p>
+    <button id="btn-forgot" style="background:none;border:none;color:var(--accent);font-size:12px;margin-top:0.5rem;cursor:pointer;padding:0">Esqueci minha senha</button>
+    <p id="forgot-msg" style="font-size:12px;margin-top:0.5rem;min-height:18px"></p>
   </div>
 </div>
 
@@ -201,7 +203,13 @@ tr:hover td{background:var(--surface2)}
       <div class="page-header"><h2>Configurações</h2></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="chart-card">
-          <h3 style="margin-bottom:1rem">Categorias</h3>
+          <h3 style="margin-bottom:1rem">Alterar senha</h3>
+          <div class="form-row"><label>Senha atual</label><input type="password" id="old-pwd"></div>
+          <div class="form-row"><label>Nova senha</label><input type="password" id="new-pwd"></div>
+          <div class="form-row"><label>Confirmar nova senha</label><input type="password" id="new-pwd2"></div>
+          <button id="btn-save-pwd" class="btn-primary">Salvar senha</button>
+          <p id="pwd-msg" style="font-size:12px;margin-top:8px;min-height:18px"></p>
+        </div>
           <div style="display:flex;gap:8px;margin-bottom:1rem">
             <input type="text" id="new-cat-name" placeholder="Nova categoria" style="flex:1">
             <button id="btn-add-cat" class="btn-primary btn-sm"><i class="ti ti-plus"></i></button>
@@ -273,7 +281,7 @@ tr:hover td{background:var(--surface2)}
 
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,sendPasswordResetEmail,updatePassword,EmailAuthProvider,reauthenticateWithCredential}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import{getFirestore,collection,addDoc,getDocs,deleteDoc,doc,updateDoc,onSnapshot,query,orderBy}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig={
@@ -342,6 +350,16 @@ onAuthStateChanged(auth,user=>{
     document.getElementById('app').style.display='none';
     document.getElementById('login-screen').style.display='flex';
   }
+});
+
+document.getElementById('btn-forgot').addEventListener('click',async()=>{
+  const email=document.getElementById('login-email').value.trim();
+  const msg=document.getElementById('forgot-msg');
+  if(!email){msg.style.color='var(--red)';msg.textContent='Digite seu e-mail acima primeiro.';return;}
+  try{
+    await sendPasswordResetEmail(auth,email);
+    msg.style.color='var(--green)';msg.textContent='E-mail de redefinição enviado!';
+  }catch(e){msg.style.color='var(--red)';msg.textContent='Erro ao enviar. Verifique o e-mail.';}
 });
 
 document.getElementById('btn-login').addEventListener('click',async()=>{
