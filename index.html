@@ -625,10 +625,51 @@ function renderSettings(){
     <div class="cat-group">
       <div class="cat-group-header">
         <span class="cat-group-name">${c}</span>
-        <button class="btn-sm btn-danger" data-del-cat="${c}"><i class="ti ti-x"></i></button>
+        <div style="display:flex;gap:4px">
+          <button class="btn-sm" data-edit-cat="${c}" title="Renomear"><i class="ti ti-edit"></i></button>
+          <button class="btn-sm btn-danger" data-del-cat="${c}" title="Excluir"><i class="ti ti-x"></i></button>
+        </div>
       </div>
-      ${sortedSubs(c).map(s=>`<div class="cat-subitem"><span>↳ ${s}</span><button class="btn-sm btn-danger" data-del-sub="${c}|||${s}"><i class="ti ti-x"></i></button></div>`).join('')}
+      ${sortedSubs(c).map(s=>`<div class="cat-subitem"><span>↳ ${s}</span><div style="display:flex;gap:4px"><button class="btn-sm" data-edit-sub="${c}|||${s}" title="Renomear"><i class="ti ti-edit"></i></button><button class="btn-sm btn-danger" data-del-sub="${c}|||${s}" title="Excluir"><i class="ti ti-x"></i></button></div></div>`).join('')}
     </div>`).join('');
+
+  list.querySelectorAll('[data-edit-cat]').forEach(btn=>btn.addEventListener('click',async()=>{
+    const oldName=btn.dataset.editCat;
+    const newName=prompt(`Renomear categoria "${oldName}" para:`,oldName);
+    if(!newName||newName.trim()===oldName)return;
+    const n=newName.trim();
+    if(cats[n]){alert('Já existe uma categoria com esse nome.');return;}
+    cats[n]=cats[oldName];delete cats[oldName];
+    // atualiza lançamentos existentes
+    const affected=transactions.filter(t=>t.category===oldName);
+    for(const t of affected){
+      try{await updateDoc(doc(db,'transactions',t.id),{category:n});}catch(e){}
+    }
+    // atualiza memória de categorias
+    for(const[k,v]of Object.entries(categoryMemory)){if(v.cat===oldName)categoryMemory[k]={...v,cat:n};}
+    await saveCats();
+    try{await setDoc(doc(db,'settings','categoryMemory'),categoryMemory);}catch(e){}
+    renderSettings();populateCatSelects();
+  }));
+
+  list.querySelectorAll('[data-edit-sub]').forEach(btn=>btn.addEventListener('click',async()=>{
+    const[c,oldSub]=btn.dataset.editSub.split('|||');
+    const newSub=prompt(`Renomear subcategoria "${oldSub}" para:`,oldSub);
+    if(!newSub||newSub.trim()===oldSub)return;
+    const n=newSub.trim();
+    cats[c]=(cats[c]||[]).map(x=>x===oldSub?n:x);
+    // atualiza lançamentos existentes
+    const affected=transactions.filter(t=>t.category===c&&t.subcategory===oldSub);
+    for(const t of affected){
+      try{await updateDoc(doc(db,'transactions',t.id),{subcategory:n});}catch(e){}
+    }
+    // atualiza memória
+    for(const[k,v]of Object.entries(categoryMemory)){if(v.cat===c&&v.sub===oldSub)categoryMemory[k]={...v,sub:n};}
+    await saveCats();
+    try{await setDoc(doc(db,'settings','categoryMemory'),categoryMemory);}catch(e){}
+    renderSettings();populateCatSelects();
+  }));
+
   list.querySelectorAll('[data-del-cat]').forEach(btn=>btn.addEventListener('click',async()=>{
     if(!confirm('Remover categoria "'+btn.dataset.delCat+'" e todas as subcategorias?'))return;
     delete cats[btn.dataset.delCat];await saveCats();renderSettings();populateCatSelects();
