@@ -152,7 +152,7 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-item" data-page="categories"><i class="ti ti-tag"></i> Categorias</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Configurações</button>
     <button class="nav-item logout-btn" id="btn-logout"><i class="ti ti-logout"></i> Sair</button>
-    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v80</div>
+    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v82</div>
   </div>
 
   <div class="main">
@@ -192,6 +192,7 @@ tr:hover td{background:var(--surface2)}
         <select id="filter-month"><option value="">Todos os meses</option></select>
         <select id="filter-cat"><option value="">Todas categorias</option></select>
         <select id="filter-type"><option value="">Todos</option><option value="income">Receita</option><option value="expense">Despesa</option></select>
+        <select id="filter-account"><option value="">Todas as contas</option></select>
         <select id="filter-who"><option value="">Todos os usuários</option></select>
       </div>
       <div class="table-card">
@@ -202,6 +203,9 @@ tr:hover td{background:var(--surface2)}
 
     <div id="page-cashflow" class="page">
       <div class="page-header"><h2>Fluxo de Caixa</h2><p>Projeção dos próximos 6 meses</p></div>
+      <div class="filter-row" style="margin-bottom:1rem">
+        <select id="cf-filter-account"><option value="">Todas as contas</option></select>
+      </div>
       <div class="chart-card" style="margin-bottom:1.5rem">
         <h3>Projeção de receitas e despesas</h3>
         <div style="position:relative;height:260px"><canvas id="cf-chart" role="img" aria-label="Fluxo de caixa"></canvas></div>
@@ -251,8 +255,14 @@ tr:hover td{background:var(--surface2)}
           <input type="file" id="import-xp-file" accept=".csv" style="display:none">
         </div>
       </div>
-      <div class="chart-card">
-        <h3 style="margin-bottom:1rem">Categorias e subcategorias</h3>
+      <div class="chart-card" style="margin-bottom:16px">
+        <h3 style="margin-bottom:1rem">Contas</h3>
+        <div style="display:flex;gap:8px;margin-bottom:1rem">
+          <input type="text" id="new-account-name" placeholder="Nome da conta" style="flex:1">
+          <button id="btn-add-account" class="btn-primary btn-sm"><i class="ti ti-plus"></i> Adicionar</button>
+        </div>
+        <div id="account-list"></div>
+      </div>
         <div style="display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap">
           <select id="new-cat-parent" style="flex:1;min-width:160px"><option value="">— Nova categoria principal —</option></select>
           <input type="text" id="new-cat-name" placeholder="Nome da categoria/subcategoria" style="flex:2;min-width:180px">
@@ -291,7 +301,8 @@ tr:hover td{background:var(--surface2)}
         <div id="f-date-day-wrap" style="display:none;margin-top:6px"><input type="number" id="f-date-day" min="1" max="28" placeholder="Dia (1–28)"></div>
       </div>
     </div>
-    <div class="form-row"><label>Observação <span style="color:var(--text3)">(opcional)</span></label><textarea id="f-notes" placeholder="Detalhes adicionais..." style="resize:vertical;min-height:60px;font-family:inherit"></textarea></div>
+          <div class="form-row"><label>Conta</label><select id="f-account"></select></div>
+      <div class="form-row"><label>Observação <span style="color:var(--text3)">(opcional)</span></label><textarea id="f-notes" placeholder="Detalhes adicionais..." style="resize:vertical;min-height:60px;font-family:inherit"></textarea></div>
     <div style="background:var(--surface2);border-radius:var(--radius);padding:12px;margin-bottom:1rem">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
         <input type="checkbox" id="f-recur" style="width:15px;height:15px;flex-shrink:0">
@@ -354,7 +365,7 @@ const DEFAULT_CATS={
   'Vestuário':['Calçados','Roupas Adulto','Roupas Criança'],
 };
 
-const CAT_COLORS=['#2a78d6','#1baf7a','#eda100','#e34948','#4a3aa7','#e87ba4','#eb6834','#008300','#73726c','#888780','#5dcaa5','#d4537e','#378add','#639922'];
+const DEFAULT_ACCOUNTS=['Cartão XP Visa','Conta Corrente','Dinheiro'];
 
 const CAT_RULES=[
   {cat:'Alimentação',sub:'Delivery',kw:['ifood','rappi','uber eats']},
@@ -400,7 +411,23 @@ function sortedSubs(cat){return(cats[cat]||[]).slice().sort((a,b)=>a.localeCompa
 function setSyncState(s){const dot=document.getElementById('sync-dot'),lbl=document.getElementById('sync-label');if(s==='syncing'){dot.className='sync-dot syncing';lbl.textContent='Sincronizando...';}else{dot.className='sync-dot';lbl.textContent='Sincronizado';}}
 
 // Load / save categories from Firestore
-async function loadCats(){
+async function loadAccounts(){
+  try{
+    const snap=await getDoc(doc(db,'settings','accounts'));
+    if(snap.exists()&&snap.data().list&&snap.data().list.length>0){
+      accounts=snap.data().list;
+    } else {
+      accounts=[...DEFAULT_ACCOUNTS];
+      await setDoc(doc(db,'settings','accounts'),{list:accounts});
+    }
+  }catch(e){
+    if(!accounts||accounts.length===0)accounts=[...DEFAULT_ACCOUNTS];
+  }
+}
+async function saveAccounts(){
+  if(!accounts||accounts.length===0)return;
+  try{await setDoc(doc(db,'settings','accounts'),{list:accounts});}catch(e){}
+}
   // Tenta até 3 vezes com espera crescente antes de desistir
   for(let attempt=1;attempt<=3;attempt++){
     try{
@@ -486,6 +513,7 @@ onAuthStateChanged(auth,async user=>{
   if(user){
     currentUser=user;
     await loadCats();
+    await loadAccounts();
     await loadCategoryMemory();
     document.getElementById('loading-screen').style.display='none';
     document.getElementById('app').style.display='block';
@@ -524,8 +552,15 @@ document.getElementById('btn-forgot').addEventListener('click',async()=>{
 function startListening(){
   if(unsubscribe)unsubscribe();
   const q=query(collection(db,'transactions'),orderBy('date','desc'));
-  unsubscribe=onSnapshot(q,snap=>{
+  unsubscribe=onSnapshot(q,async snap=>{
     transactions=snap.docs.map(d=>({id:d.id,...d.data()}));
+    // migra lançamentos sem conta para Cartão XP Visa
+    const semConta=transactions.filter(t=>!t.account);
+    if(semConta.length>0){
+      for(const t of semConta){
+        try{await updateDoc(doc(db,'transactions',t.id),{account:'Cartão XP Visa'});}catch(e){}
+      }
+    }
     setSyncState('synced');refreshCurrentPage();populateFilterMonths();
   },err=>console.error(err));
 }
@@ -533,7 +568,11 @@ function refreshCurrentPage(){
   const p=document.querySelector('.page.active')?.id.replace('page-','');
   if(p==='dashboard')renderDashboard();
   else if(p==='transactions')renderTransactions();
-  else if(p==='cashflow')renderCashflow();
+  else if(p==='cashflow'){
+    populateAccountSelects();
+    document.getElementById('cf-filter-account').onchange=renderCashflow;
+    renderCashflow();
+  }
   else if(p==='categories')renderCategoriesPage();
 }
 
@@ -552,7 +591,7 @@ function showPage(p){
   else if(p==='transactions'){
     populateFilterMonths();
     renderTransactions();
-    ['filter-month','filter-cat','filter-type','filter-who'].forEach(id=>{
+    ['filter-month','filter-cat','filter-type','filter-account','filter-who'].forEach(id=>{
       const el=document.getElementById(id);
       el.onchange=renderTransactions;
     });
@@ -610,6 +649,7 @@ function renderDashboard(){
     <td>${t.desc}${t.recurTotal?`<span class="recurring-badge">${t.recurIndex}/${t.recurTotal}</span>`:t.recurring?'<span class="recurring-badge"><i class="ti ti-refresh" style="font-size:9px"></i></span>':''}${t.notes?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${t.notes}</div>`:''}</td>
     <td><span class="badge ${t.category==='Pendente de Classificação'?'badge-pending':'badge-cat'}">${t.category}</span>${t.subcategory?`<span class="badge badge-subcat">${t.subcategory}</span>`:''}</td>
     <td><span class="badge ${t.type==='income'?'badge-income':'badge-expense'}">${t.type==='income'?'Receita':'Despesa'}</span></td>
+    <td style="color:var(--text3);font-size:12px">${t.account||'—'}</td>
     <td style="color:var(--text3);font-size:12px">${shortEmail(t.createdBy)||'—'}</td>
     <td style="color:${t.type==='income'?'var(--green)':'var(--red)'};font-weight:500">${t.type==='expense'?'-':''}${cur(t.value)}</td>
   </tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:2rem">Nenhum lançamento ainda</td></tr>';
@@ -677,11 +717,24 @@ function populateFilterMonths(){
 
 // Cashflow
 function renderCashflow(){
+  populateAccountSelects();
+  const af=document.getElementById('cf-filter-account').value;
   const now=new Date();
-  const recurInc=transactions.filter(t=>t.recurring&&t.type==='income').reduce((s,t)=>s+t.value,0);
-  const recurExp=transactions.filter(t=>t.recurring&&t.type==='expense').reduce((s,t)=>s+t.value,0);
+  const allTx=af?transactions.filter(t=>t.account===af):transactions;
+  const recurInc=allTx.filter(t=>t.recurring&&t.type==='income').reduce((s,t)=>s+t.value,0);
+  const recurExp=allTx.filter(t=>t.recurring&&t.type==='expense').reduce((s,t)=>s+t.value,0);
   const rows=[];let accum=0;
-  for(let i=0;i<6;i++){let m=now.getMonth()+i,y=now.getFullYear();if(m>11){m-=12;y++;}const actual=getMonthTx(m,y);const ai=actual.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0);const ae=actual.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);const isActual=ai>0||ae>0;const inc=isActual?ai:recurInc,exp=isActual?ae:recurExp;const saldo=inc-exp;accum+=saldo;rows.push({label:MONTHS_SHORT[m]+'/'+String(y).slice(2),inc,exp,saldo,accum,isActual});}
+  for(let i=0;i<6;i++){
+    let m=now.getMonth()+i,y=now.getFullYear();
+    if(m>11){m-=12;y++;}
+    const actual=allTx.filter(t=>{const dt=new Date(t.date+'T12:00:00');return dt.getMonth()===m&&dt.getFullYear()===y;});
+    const ai=actual.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0);
+    const ae=actual.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);
+    const isActual=ai>0||ae>0;
+    const inc=isActual?ai:recurInc,exp=isActual?ae:recurExp;
+    const saldo=inc-exp;accum+=saldo;
+    rows.push({label:MONTHS_SHORT[m]+'/'+String(y).slice(2),inc,exp,saldo,accum,isActual});
+  }
   if(cfChart){cfChart.destroy();cfChart=null;}
   cfChart=new Chart(document.getElementById('cf-chart').getContext('2d'),{type:'bar',data:{labels:rows.map(r=>r.label),datasets:[{label:'Receitas',data:rows.map(r=>Math.round(r.inc)),backgroundColor:'rgba(27,175,122,0.7)',borderRadius:4},{label:'Despesas',data:rows.map(r=>Math.round(r.exp)),backgroundColor:'rgba(227,73,72,0.7)',borderRadius:4},{label:'Saldo',data:rows.map(r=>Math.round(r.saldo)),type:'line',borderColor:'#eda100',backgroundColor:'rgba(237,161,0,0.08)',borderWidth:2,pointRadius:4,pointBackgroundColor:'#eda100',fill:true,tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#b0afa8',font:{size:11}}}},scales:{x:{ticks:{color:'#787770'},grid:{color:'rgba(255,255,255,0.05)'}},y:{ticks:{color:'#787770',callback:v=>'R$'+Math.round(v/1000)+'k'},grid:{color:'rgba(255,255,255,0.05)'}}}}});
   document.getElementById('cf-tbody').innerHTML=rows.map(r=>`<tr><td>${r.label}${!r.isActual?' <span style="font-size:10px;color:var(--text3)">(proj.)</span>':''}</td><td style="color:var(--green)">${cur(r.inc)}</td><td style="color:var(--red)">${cur(r.exp)}</td><td style="color:${r.saldo>=0?'var(--green)':'var(--red)'};font-weight:500">${r.saldo>=0?'+':''}${cur(r.saldo)}</td><td style="font-weight:500;color:${r.accum>=0?'var(--green)':'var(--red)'}">${r.accum>=0?'+':''}${cur(r.accum)}</td><td style="font-size:12px;color:${r.saldo>=0?'var(--green)':'var(--red)'}">${r.saldo>=0?'✓ Economizando':'⚠ No vermelho'}</td></tr>`).join('');
@@ -704,7 +757,53 @@ function renderCategoriesPage(){
 }
 
 // Settings
-function renderSettings(){
+function populateAccountSelects(){
+  const sorted=[...accounts].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  // modal
+  const fa=document.getElementById('f-account');
+  if(fa){const v=fa.value;fa.innerHTML=sorted.map(a=>`<option value="${a}">${a}</option>`).join('');if(v)fa.value=v;}
+  // filter transactions
+  const ft=document.getElementById('filter-account');
+  if(ft){const v=ft.value;ft.innerHTML='<option value="">Todas as contas</option>'+sorted.map(a=>`<option value="${a}">${a}</option>`).join('');if(v)ft.value=v;}
+  // filter cashflow
+  const fc=document.getElementById('cf-filter-account');
+  if(fc){const v=fc.value;fc.innerHTML='<option value="">Todas as contas</option>'+sorted.map(a=>`<option value="${a}">${a}</option>`).join('');if(v)fc.value=v;}
+}
+
+function renderAccountSettings(){
+  const list=document.getElementById('account-list');
+  list.innerHTML=[...accounts].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(a=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border)">
+      <span style="font-size:13px">${a}</span>
+      <div style="display:flex;gap:4px">
+        <button class="btn-sm" data-edit-acc="${a}"><i class="ti ti-edit"></i></button>
+        <button class="btn-sm btn-danger" data-del-acc="${a}"><i class="ti ti-x"></i></button>
+      </div>
+    </div>`).join('');
+  list.querySelectorAll('[data-edit-acc]').forEach(btn=>btn.addEventListener('click',async()=>{
+    const old=btn.dataset.editAcc;
+    const nw=prompt(`Renomear conta "${old}" para:`,old);
+    if(!nw||nw.trim()===old)return;
+    const n=nw.trim();
+    accounts=accounts.map(a=>a===old?n:a);
+    const affected=transactions.filter(t=>t.account===old);
+    for(const t of affected)try{await updateDoc(doc(db,'transactions',t.id),{account:n});}catch(e){}
+    await saveAccounts();renderAccountSettings();populateAccountSelects();
+  }));
+  list.querySelectorAll('[data-del-acc]').forEach(btn=>btn.addEventListener('click',async()=>{
+    if(!confirm(`Excluir conta "${btn.dataset.delAcc}"?`))return;
+    accounts=accounts.filter(a=>a!==btn.dataset.delAcc);
+    await saveAccounts();renderAccountSettings();populateAccountSelects();
+  }));
+}
+
+document.getElementById('btn-add-account').addEventListener('click',async()=>{
+  const v=document.getElementById('new-account-name').value.trim();
+  if(!v||accounts.includes(v))return;
+  accounts.push(v);
+  document.getElementById('new-account-name').value='';
+  await saveAccounts();renderAccountSettings();populateAccountSelects();
+});
   populateCatSelects();
   const pref=localStorage.getItem('theme-pref')||'dark';
   document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===pref));
@@ -882,14 +981,15 @@ document.getElementById('f-date').addEventListener('change',updateRecurPreview);
 document.getElementById('f-date-day').addEventListener('input',updateRecurPreview);
 
 function openModal(tx=null){
-  // garante categorias atualizadas no momento de abrir
   populateCatSelects();
+  populateAccountSelects();
   editingId=tx?tx.id:null;
   document.getElementById('modal-title').textContent=tx?'Editar lançamento':'Novo lançamento';
   setType(tx?tx.type:'expense');
   document.getElementById('f-desc').value=tx?tx.desc:'';
   document.getElementById('f-val').value=tx?tx.value:'';
   document.getElementById('f-notes').value=tx?tx.notes||'':'';
+  document.getElementById('f-account').value=tx?tx.account||accounts[0]||'':accounts[0]||'';
   document.getElementById('f-date').value=tx?tx.date:new Date().toISOString().split('T')[0];
   document.getElementById('f-date-mode').value='specific';
   document.getElementById('f-date').style.display='block';
@@ -930,6 +1030,7 @@ async function saveTransaction(){
   const cat=document.getElementById('f-cat').value;
   const sub=document.getElementById('f-subcat').value;
   const notes=document.getElementById('f-notes').value.trim();
+  const account=document.getElementById('f-account').value;
   const recur=document.getElementById('f-recur').checked;
   const freq=document.getElementById('f-recur-freq').value;
   const tv=document.getElementById('f-recur-times').value;
@@ -937,7 +1038,7 @@ async function saveTransaction(){
   if(!desc||!val||!date){alert('Preencha todos os campos');return;}
   setSyncState('syncing');
   try{
-    const payload={desc,value:val,date,category:cat,subcategory:sub,type:txType,recurring:recur,recurFreq:freq,notes};
+    const payload={desc,value:val,date,category:cat,subcategory:sub,type:txType,recurring:recur,recurFreq:freq,notes,account};
     if(editingId){await updateDoc(doc(db,'transactions',editingId),payload);}
     else if(recur&&times>0){
       const gid='grp_'+Date.now().toString(36);
