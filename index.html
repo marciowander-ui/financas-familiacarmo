@@ -152,7 +152,7 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-item" data-page="categories"><i class="ti ti-tag"></i> Categorias</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Configurações</button>
     <button class="nav-item logout-btn" id="btn-logout"><i class="ti ti-logout"></i> Sair</button>
-    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v69</div>
+    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v72</div>
   </div>
 
   <div class="main">
@@ -401,25 +401,36 @@ function setSyncState(s){const dot=document.getElementById('sync-dot'),lbl=docum
 
 // Load / save categories from Firestore
 async function loadCats(){
-  try{
-    const snap=await getDoc(doc(db,'settings','categories'));
-    if(snap.exists()&&snap.data().data&&Object.keys(snap.data().data).length>0){
-      // Firestore é SEMPRE a fonte da verdade — o código nunca sobrescreve
-      cats=snap.data().data;
-      return;
-    }
-    // Só chega aqui se o banco estiver completamente vazio (primeira execução)
-    cats=JSON.parse(JSON.stringify(DEFAULT_CATS));
-    await saveCats();
-  }catch(e){
-    // Erro de rede: mantém o que já está em memória, nunca reseta
-    if(!cats||Object.keys(cats).length===0){
-      cats=JSON.parse(JSON.stringify(DEFAULT_CATS));
+  // Tenta até 3 vezes com espera crescente antes de desistir
+  for(let attempt=1;attempt<=3;attempt++){
+    try{
+      const snap=await getDoc(doc(db,'settings','categories'));
+      if(snap.exists()&&snap.data().data&&Object.keys(snap.data().data).length>0){
+        cats=snap.data().data; // Firestore sempre vence — nunca sobrescreve
+        return;
+      }
+      // Só chega aqui se o documento não existir ainda (primeira vez)
+      // Nunca salva DEFAULT_CATS se já há dados — só se realmente vazio
+      if(!snap.exists()){
+        cats=JSON.parse(JSON.stringify(DEFAULT_CATS));
+        await setDoc(doc(db,'settings','categories'),{data:cats}); // cria uma vez
+        return;
+      }
+    }catch(e){
+      if(attempt<3){
+        await new Promise(r=>setTimeout(r,500*attempt)); // espera 500ms, 1000ms
+        continue;
+      }
+      // Após 3 tentativas falhas: usa memória atual se disponível, nunca DEFAULT_CATS
+      console.warn('loadCats: falha ao carregar do Firestore após 3 tentativas');
+      // cats permanece como estava — não reseta
     }
   }
 }
 async function saveCats(){
-  try{await setDoc(doc(db,'settings','categories'),{data:cats});}catch(e){}
+  // Só salva se cats foi carregado do Firestore ou criado explicitamente pelo usuário
+  if(!cats||Object.keys(cats).length===0)return;
+  try{await setDoc(doc(db,'settings','categories'),{data:cats});}catch(e){console.warn('saveCats error',e);}
 }
 
 // Theme
