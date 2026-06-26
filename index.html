@@ -152,7 +152,7 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-item" data-page="categories"><i class="ti ti-tag"></i> Categorias</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Configurações</button>
     <button class="nav-item logout-btn" id="btn-logout"><i class="ti ti-logout"></i> Sair</button>
-    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v78</div>
+    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v79</div>
   </div>
 
   <div class="main">
@@ -705,6 +705,7 @@ function renderCategoriesPage(){
 
 // Settings
 function renderSettings(){
+  populateCatSelects();
   const pref=localStorage.getItem('theme-pref')||'dark';
   document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===pref));
   const list=document.getElementById('cat-list');
@@ -881,6 +882,8 @@ document.getElementById('f-date').addEventListener('change',updateRecurPreview);
 document.getElementById('f-date-day').addEventListener('input',updateRecurPreview);
 
 function openModal(tx=null){
+  // garante categorias atualizadas no momento de abrir
+  populateCatSelects();
   editingId=tx?tx.id:null;
   document.getElementById('modal-title').textContent=tx?'Editar lançamento':'Novo lançamento';
   setType(tx?tx.type:'expense');
