@@ -131,7 +131,7 @@ tr[data-pending="1"]:hover td{background:#4a3c00 !important;}
     <button class="nav-item" data-page="categories"><i class="ti ti-tag"></i> Categorias</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Configuracoes</button>
     <button class="nav-item logout-btn" id="btn-logout"><i class="ti ti-logout"></i> Sair</button>
-    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v99</div>
+    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v100</div>
   </div>
 
   <div class="main">
@@ -645,6 +645,14 @@ function renderTransactions() {
   }).join('');
   tbody.querySelectorAll('[data-edit]').forEach(function(btn){ btn.addEventListener('click', function(){ editTx(btn.dataset.edit); }); });
   tbody.querySelectorAll('[data-del]').forEach(function(btn){ btn.addEventListener('click', function(){ deleteTx(btn.dataset.del); }); });
+  // aplica highlight via JS direto nos elementos já no DOM
+  tbody.querySelectorAll('tr[data-pending="1"] td').forEach(function(td){
+    td.style.setProperty('background', '#3d3100', 'important');
+    td.style.setProperty('border-top', '1px solid #eda100', 'important');
+    td.style.setProperty('border-bottom', '1px solid #eda100', 'important');
+  });
+  var firstCells = tbody.querySelectorAll('tr[data-pending="1"] td:first-child');
+  firstCells.forEach(function(td){ td.style.setProperty('border-left', '3px solid #eda100', 'important'); });
 }
 function populateFilterMonths() {
   var s = document.getElementById('filter-month'), v = s.value;
