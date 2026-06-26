@@ -131,7 +131,7 @@ tr[data-pending="1"]:hover td{background:#4a3c00 !important;}
     <button class="nav-item" data-page="categories"><i class="ti ti-tag"></i> Categorias</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Configuracoes</button>
     <button class="nav-item logout-btn" id="btn-logout"><i class="ti ti-logout"></i> Sair</button>
-    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v100</div>
+    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v101</div>
   </div>
 
   <div class="main">
@@ -727,7 +727,7 @@ function renderCategoriesPage() {
     var pct = total > 0 ? Math.round((data.total/total)*100) : 0;
     var color = CAT_COLORS[sortedCatNames().indexOf(cat) % CAT_COLORS.length] || CAT_COLORS[0];
     var subRows = Object.entries(data.subs).sort(function(a,b){ return b[1]-a[1]; }).map(function(se){ return '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding:3px 0 3px 8px;border-left:2px solid '+color+'40;margin-left:4px"><span>- '+se[0]+'</span><span>'+cur(se[1])+'</span></div>'; }).join('');
-    return '<div class="kpi"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:13px;font-weight:500">'+cat+'</span><span style="font-size:11px;color:var(--text3)">'+pct+'%</span></div><div style="font-size:20px;font-weight:500;color:'+color+';margin-bottom:8px">'+cur(data.total)+'</div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div>'+(subRows?'<div style="margin-top:8px">'+subRows+'</div>':'')+'</div>';
+    return '<div class="kpi" style="cursor:pointer" data-cat-filter="'+cat+'" title="Ver lancamentos de '+cat+'"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:500">'+cat+'</span><div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:var(--text3)">'+pct+'%</span><span style="font-size:11px;color:var(--accent)"><i class="ti ti-list"></i></span></div></div><div style="font-size:20px;font-weight:500;color:'+color+';margin-bottom:8px">'+cur(data.total)+'</div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div>'+(subRows?'<div style="margin-top:8px">'+subRows+'</div>':'')+'</div>';
   }).join('');
 }
 
