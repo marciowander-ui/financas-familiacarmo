@@ -152,7 +152,7 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-item" data-page="categories"><i class="ti ti-tag"></i> Categorias</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Configurações</button>
     <button class="nav-item logout-btn" id="btn-logout"><i class="ti ti-logout"></i> Sair</button>
-    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v76</div>
+    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v77</div>
   </div>
 
   <div class="main">
@@ -480,20 +480,24 @@ function suggestCategory(desc){
 
 // Auth
 onAuthStateChanged(auth,async user=>{
-  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('loading-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='none';
   if(user){
     currentUser=user;
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('app').style.display='block';
-    document.getElementById('user-email-label').textContent=shortEmail(user.email);
     await loadCats();
     await loadCategoryMemory();
+    document.getElementById('loading-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('user-email-label').textContent=shortEmail(user.email);
     startListening();
     updateMonthLabel();
     populateCatSelects();
+    applyTheme(localStorage.getItem('theme-pref')||'dark');
   } else {
     currentUser=null;
     if(unsubscribe){unsubscribe();unsubscribe=null;}
+    document.getElementById('loading-screen').style.display='none';
     document.getElementById('app').style.display='none';
     document.getElementById('login-screen').style.display='flex';
   }
