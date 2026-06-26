@@ -131,7 +131,7 @@ tr.pending-row:hover td{background:rgba(237,161,0,0.18) !important;}
     <button class="nav-item" data-page="categories"><i class="ti ti-tag"></i> Categorias</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Configuracoes</button>
     <button class="nav-item logout-btn" id="btn-logout"><i class="ti ti-logout"></i> Sair</button>
-    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v96</div>
+    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v97</div>
   </div>
 
   <div class="main">
@@ -631,9 +631,9 @@ function renderTransactions() {
     var recBadge = t.recurTotal ? '<span class="recurring-badge">' + t.recurIndex + '/' + t.recurTotal + '</span>' : (t.recurring ? '<span class="recurring-badge"><i class="ti ti-refresh" style="font-size:9px"></i></span>' : '');
     var noteDiv = t.notes ? '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + t.notes + '</div>' : '';
     var isPending = t.category === 'Pendente de Classificacao';
-    var trStyle = isPending ? 'background:rgba(237,161,0,0.12);' : '';
-    var tdStyle = isPending ? 'border-top:1px solid rgba(237,161,0,0.4);border-bottom:1px solid rgba(237,161,0,0.4);' : '';
-    return '<tr style="'+trStyle+'"><td style="'+tdStyle+(isPending?'border-left:3px solid #eda100;':'')+'">' + fmtDate(t.date) + '</td><td style="'+tdStyle+'">' + t.desc + recBadge + noteDiv + '</td><td style="'+tdStyle+'"><span class="badge ' + catBadge + '">' + t.category + '</span>' + subBadge + '</td><td style="'+tdStyle+'font-size:12px;color:var(--text3)">' + (t.account||'-') + '</td><td style="'+tdStyle+'"><span class="badge ' + (t.type==='income'?'badge-income':'badge-expense') + '">' + (t.type==='income'?'Receita':'Despesa') + '</span></td><td style="'+tdStyle+'color:var(--text3);font-size:12px">' + (shortEmail(t.createdBy)||'-') + '</td><td style="'+tdStyle+'">' + (t.recurring?'<span style="color:var(--amber);font-size:12px">sim</span>':'-') + '</td><td style="'+tdStyle+'color:' + (t.type==='income'?'var(--green)':'var(--red)') + ';font-weight:500">' + (t.type==='expense'?'-':'') + cur(t.value) + '</td><td style="'+tdStyle+'white-space:nowrap"><button class="btn-sm" data-edit="' + t.id + '" style="margin-right:4px"><i class="ti ti-edit"></i></button><button class="btn-sm btn-danger" data-del="' + t.id + '"><i class="ti ti-trash"></i></button></td></tr>';
+    var tdBg = isPending ? 'background:rgba(237,161,0,0.15) !important;' : '';
+    var tdFirst = isPending ? 'background:rgba(237,161,0,0.15) !important;border-left:3px solid #eda100;' : '';
+    return '<tr><td style="'+tdFirst+'">' + fmtDate(t.date) + '</td><td style="'+tdBg+'">' + t.desc + recBadge + noteDiv + '</td><td style="'+tdBg+'"><span class="badge ' + catBadge + '">' + t.category + '</span>' + subBadge + '</td><td style="'+tdBg+'font-size:12px;color:var(--text3)">' + (t.account||'-') + '</td><td style="'+tdBg+'"><span class="badge ' + (t.type==='income'?'badge-income':'badge-expense') + '">' + (t.type==='income'?'Receita':'Despesa') + '</span></td><td style="'+tdBg+'color:var(--text3);font-size:12px">' + (shortEmail(t.createdBy)||'-') + '</td><td style="'+tdBg+'">' + (t.recurring?'<span style="color:var(--amber);font-size:12px">sim</span>':'-') + '</td><td style="'+tdBg+'color:' + (t.type==='income'?'var(--green)':'var(--red)') + ';font-weight:500">' + (t.type==='expense'?'-':'') + cur(t.value) + '</td><td style="'+tdBg+'white-space:nowrap"><button class="btn-sm" data-edit="' + t.id + '" style="margin-right:4px"><i class="ti ti-edit"></i></button><button class="btn-sm btn-danger" data-del="' + t.id + '"><i class="ti ti-trash"></i></button></td></tr>';
   }).join('');
   tbody.querySelectorAll('[data-edit]').forEach(function(btn){ btn.addEventListener('click', function(){ editTx(btn.dataset.edit); }); });
   tbody.querySelectorAll('[data-del]').forEach(function(btn){ btn.addEventListener('click', function(){ deleteTx(btn.dataset.del); }); });
