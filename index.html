@@ -62,6 +62,8 @@ th{text-align:left;padding:10px 1.25rem;font-size:12px;color:var(--text3);border
 td{padding:11px 1.25rem;border-bottom:0.5px solid var(--border);font-size:13px}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--surface2)}
+tr.pending-row td{background:rgba(237,161,0,0.1) !important;border-left:3px solid var(--amber);}
+tr.pending-row:hover td{background:rgba(237,161,0,0.18) !important;}
 .badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:500}
 .badge-income{background:var(--green-bg);color:var(--green)}
 .badge-expense{background:var(--red-bg);color:var(--red)}
@@ -129,7 +131,7 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-item" data-page="categories"><i class="ti ti-tag"></i> Categorias</button>
     <button class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Configuracoes</button>
     <button class="nav-item logout-btn" id="btn-logout"><i class="ti ti-logout"></i> Sair</button>
-    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v94</div>
+    <div style="font-size:10px;color:var(--text3);padding:6px 12px;margin-top:4px">v95</div>
   </div>
 
   <div class="main">
@@ -628,7 +630,7 @@ function renderTransactions() {
     var subBadge = t.subcategory ? '<span class="badge badge-subcat">' + t.subcategory + '</span>' : '';
     var recBadge = t.recurTotal ? '<span class="recurring-badge">' + t.recurIndex + '/' + t.recurTotal + '</span>' : (t.recurring ? '<span class="recurring-badge"><i class="ti ti-refresh" style="font-size:9px"></i></span>' : '');
     var noteDiv = t.notes ? '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + t.notes + '</div>' : '';
-    return '<tr style="'+(t.category==='Pendente de Classificacao'?'background:rgba(237,161,0,0.08);border-left:3px solid var(--amber);':'')+'""><td>' + fmtDate(t.date) + '</td><td>' + t.desc + recBadge + noteDiv + '</td><td><span class="badge ' + catBadge + '">' + t.category + '</span>' + subBadge + '</td><td style="font-size:12px;color:var(--text3)">' + (t.account||'-') + '</td><td><span class="badge ' + (t.type==='income'?'badge-income':'badge-expense') + '">' + (t.type==='income'?'Receita':'Despesa') + '</span></td><td style="color:var(--text3);font-size:12px">' + (shortEmail(t.createdBy)||'-') + '</td><td>' + (t.recurring?'<span style="color:var(--amber);font-size:12px">sim</span>':'-') + '</td><td style="color:' + (t.type==='income'?'var(--green)':'var(--red)') + ';font-weight:500">' + (t.type==='expense'?'-':'') + cur(t.value) + '</td><td style="white-space:nowrap"><button class="btn-sm" data-edit="' + t.id + '" style="margin-right:4px"><i class="ti ti-edit"></i></button><button class="btn-sm btn-danger" data-del="' + t.id + '"><i class="ti ti-trash"></i></button></td></tr>';
+    return '<tr class="'+(t.category==='Pendente de Classificacao'?'pending-row':'')+'""><td>' + fmtDate(t.date) + '</td><td>' + t.desc + recBadge + noteDiv + '</td><td><span class="badge ' + catBadge + '">' + t.category + '</span>' + subBadge + '</td><td style="font-size:12px;color:var(--text3)">' + (t.account||'-') + '</td><td><span class="badge ' + (t.type==='income'?'badge-income':'badge-expense') + '">' + (t.type==='income'?'Receita':'Despesa') + '</span></td><td style="color:var(--text3);font-size:12px">' + (shortEmail(t.createdBy)||'-') + '</td><td>' + (t.recurring?'<span style="color:var(--amber);font-size:12px">sim</span>':'-') + '</td><td style="color:' + (t.type==='income'?'var(--green)':'var(--red)') + ';font-weight:500">' + (t.type==='expense'?'-':'') + cur(t.value) + '</td><td style="white-space:nowrap"><button class="btn-sm" data-edit="' + t.id + '" style="margin-right:4px"><i class="ti ti-edit"></i></button><button class="btn-sm btn-danger" data-del="' + t.id + '"><i class="ti ti-trash"></i></button></td></tr>';
   }).join('');
   tbody.querySelectorAll('[data-edit]').forEach(function(btn){ btn.addEventListener('click', function(){ editTx(btn.dataset.edit); }); });
   tbody.querySelectorAll('[data-del]').forEach(function(btn){ btn.addEventListener('click', function(){ deleteTx(btn.dataset.del); }); });
